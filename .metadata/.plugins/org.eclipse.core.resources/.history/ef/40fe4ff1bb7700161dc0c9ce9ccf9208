@@ -17,7 +17,6 @@ class localusers {
       home         => '/home/admin',
       gid          => 'wheel',
       managehome   => true,
-      password     => $1$ku4OD5sE$pesTIAigs2XgprG90V2qw/,
       
   }
 
