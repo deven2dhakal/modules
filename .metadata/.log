@@ -276,3 +276,36 @@ user global configuration and to define the default location to store repositori
 not correct please set the HOME environment variable and restart Eclipse. Otherwise Git for Windows and
 EGit might behave differently since they see different configuration options.
 This warning can be switched off on the Team > Git > Confirmations and Warnings preference page.
+
+!ENTRY org.apache.log4j 4 0 2016-09-10 18:53:14.352
+!MESSAGE org.eclipse.xtext.ui.editor.model.DocumentPartitioner  - Detected unexpected state in document partitioner. Please file a bug with the following information attached:
+Document content after the event was applied:
+>>># Class: localusers
+#
+# This module manages localusers
+#
+# Parameters: none
+#
+# Actions:
+#
+# Requires: see Modulefile
+#
+# Sample Usage:
+# managehome groupe makes home directory of the user if there is not any
+class localusers {
+    user {'deven':
+      ensure       => present,
+      shell        => '/bin/bash',
+      home         => '/home/admin',
+      gid          => 'wheel',
+      managehome   => true,
+      password     => '$1$ku4OD5sE$pesTIAigs2XgprG90V2qw/',
+      
+  }
+u
+}
+<<<
+Document event: offset: 480, length: 0, timestamp: 285
+text:>u<
+
+
