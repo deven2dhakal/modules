@@ -9,10 +9,7 @@
 #A Jenkins RPM repository is added in /etc/yum.repos.d/jenkins.repo
 
 fqdn=jenkins.test
-ip="$(ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')"
-echo $ip
-echo "setting the hostname as $fqdn in /etc/hosts file with ipaddress $ip ... "
-echo "$ip       $fqdn" >> /etc/hosts
+sed -i 's/\(127.0.0.1 \)/\1 $fqdn/' /etc/hosts
 sleep 2
 echo ""
 printf "writing $fqdn as hostname in kernel..."
