@@ -1,6 +1,6 @@
 #!/bin/bash
 #update fqdn with your hostname
-fqdn=puppet.test1
+fqdn=pmcentos.test
 ip="$(ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')"
 echo $ip
 echo "setting the hostname as $fqdn in /etc/hosts file with ipaddress $ip ... "
