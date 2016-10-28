@@ -1,0 +1,60 @@
+# => Managed by puppet: modules/global/templates/etc/hosts.erb <=
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+<%
+if @virtual == 'docker'
+-%>
+<%= @ipaddress %> <%= @hostname %> <%= @fqdn %>
+<%
+  if @hostname =~ /^dt(vqa)/
+-%>
+<%=  @vqa_varnish_ip %> vqa.maestro.dc.dotomi.net
+<%=  @vqa_dcs_ip %> dtvqa<%= @vqa_lane %>dcs01p.dc.dotomi.net
+<%=  @vqa_dma_ip %> dtvqa<%= @vqa_lane %>dma01p.dc.dotomi.net
+<%=  @vqa_mem_ip %> dtvqa<%= @vqa_lane %>mem01p.dc.dotomi.net
+<%=  @vqa_nsy_ip %> dtvqa<%= @vqa_lane %>nsy01p.dc.dotomi.net
+<%=  @vqa_rtb_ip %> dtvqa<%= @vqa_lane %>rtb01p.dc.dotomi.net
+<%=  @vqa_mjc_ip %> dtvqa<%= @vqa_lane %>mjc01p.dc.dotomi.net
+<%=  @vqa_agg_ip %> dtvqa<%= @vqa_lane %>agg01p.dc.dotomi.net
+<%=  @vqa_ram_ip %> vqa-origin.maestro.dc.dotomi.net
+<%=  @vqa_varnish_ip %> dtvqa<%= @vqa_lane %>rav01p.dc.dotomi.net
+<%=  @vqa_res_ip %> usweb.dotomi.com
+<%=  @vqa_res_ip %> s-usweb.dotomi.com
+<%=  @vqa_lvs_ip %> usadmm.dotomi.com
+<%=  @vqa_lvs_ip %> login.dotomi.com
+<%=  @vqa_lvs_ip %> rtb.dotomi.com
+10.110.100.155 dtm.javascriptprototype.com
+<%=  @vqa_nsy_ip %> dotomi.javascriptprototype.com
+<%=  @vqa_nsy_ip %> dtm.sharp.com 
+<%=  @vqa_nsy_ip %> dtm.inapp.com
+<%=  @vqa_nsy_ip %> dotomi.orbitz.com
+<%=  @vqa_nsy_ip %> dtm.rtbappnexustest.com
+<%
+  end
+end
+
+if @cnvr_app == 'ymg'
+-%>
+10.110.110.10 ord-fs201.corp.valueclick.com ord-fs201
+<%
+end
+
+if @cnvr_app == 'gfs'
+-%>
+10.110.0.53 dtord00gfs01p.int
+10.110.0.54 dtord00gfs02p.int
+10.110.0.56 dtord00gfs03p.int
+10.110.0.57 dtord00gfs04p.int
+10.140.99.31 dtchi99gfs01d.int
+10.30.0.53 dtsjc00gfs01p.int
+10.30.0.54 dtsjc00gfs02p.int
+10.130.0.53 dtiad00gfs01p.int
+10.130.0.54 dtiad00gfs02p.int
+10.130.0.63 dtiad00gfs03p.int
+10.130.0.64 dtiad00gfs04p.int
+10.130.2.50 dtiad02gfs01p.int
+10.26.0.53 dtams00gfs01p.int
+10.26.0.54 dtams00gfs02p.int
+<%
+end
+-%>

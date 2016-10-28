@@ -1,0 +1,14 @@
+<%# Needed since the validation for create_resources yumrepo fails prior to
+    merge. So I merge prior to and *that* is the yaml. -%>
+---
+<%= @title %>:
+<%
+totalHash = @yumYaml[@title].merge(@myhash)
+
+totalHash.each do |k,v|
+-%>
+  <%= k %>: <%= v %>
+<%
+end
+-%>
+...

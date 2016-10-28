@@ -1,0 +1,7 @@
+[puppet-dependencies]
+name = Puppet $releasever Dependencies
+baseurl = http://sjc-yum.dc.dotomi.net/ext/puppet/$releasever/dependencies/$basearch/
+
+[puppet-products]
+name = Puppet $releasever Products
+baseurl = http://sjc-yum.dc.dotomi.net/ext/puppet/$releasever/products/$basearch/

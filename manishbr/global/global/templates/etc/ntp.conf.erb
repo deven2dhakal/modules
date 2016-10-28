@@ -1,0 +1,19 @@
+# Managed by puppet: modules/global/templates/etc/ntp.conf.erb
+
+server <%= scope['global::_OPSServers'].shift %> iburst prefer
+<% scope['global::_OPSServers'].each do |_server| -%>
+server <%= _server %> iburst
+<% end -%>
+
+# Default deny all
+restrict default noquery nomodify notrap nopeer
+restrict -6 default noquery nomodify notrap nopeer
+
+# Allow IRIS Nagios
+<% scope['global::_nagiosServers'].each do |_server| -%>
+restrict <%= _server %> nomodify notrap
+<% end -%>
+
+# Allow localhost
+restrict 127.0.0.1 nomodify notrap nopeer
+restrict -6 ::1 nomodify notrap nopeer

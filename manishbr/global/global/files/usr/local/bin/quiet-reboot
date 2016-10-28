@@ -1,0 +1,24 @@
+#!/bin/sh
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+
+if [ "$1" = '-vclk-system-upgrade' ] || [ "$2" = '-vclk-system-upgrade' ]; then
+	echo 'called by vclk-system-upgrade'
+	REBOOT="shutdown -r now"
+else
+	REBOOT="sudo /sbin/shutdown -r now"
+fi
+
+DATA=$(/usr/bin/curl --max-time 5 -s --data "linux_restart=1" http://monitor.vclk.net/nagios/public-cgi/request-sdt.cgi)
+
+if [[ "${DATA}" =~ "success" ]] ; then
+	echo $DATA
+else
+	cat <<HEREDOC
+$DATA
+*****  CAN'T SDT *****
+
+HEREDOC
+fi
+
+${REBOOT}

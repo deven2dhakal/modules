@@ -1,0 +1,72 @@
+<%
+require 'resolv'
+
+begin
+	real_ip = Resolv::getaddress(@fqdn)
+rescue
+	real_ip = nil
+end
+
+monServers = @monitoring_servers.split(',')
+-%>
+# Managed by puppet: modules/global/templates/etc/chrony.conf.erb
+
+# Servers to sync from
+server <%= scope['global::_OPSServers'].shift %> iburst prefer
+<% scope['global::_OPSServers'].each do |server| -%>
+server <%= server %> iburst
+<% end -%>
+
+# Ignore stratum in source selection.
+stratumweight 0
+
+# Record the rate at which the system clock gains/losses time.
+driftfile /var/lib/chrony/drift
+
+# Enable kernel RTC synchronization.
+rtcsync
+rtconutc
+
+# In first three updates step the system clock instead of slew
+# if the adjustment is larger than 10 seconds.
+makestep 10 3
+
+# chronyd denies by default and then allow / deny statements take effect.
+#   unlike most configuration files save for OpenBSD packet filtering, the order
+#   doesn't matter. As such an allow before a deny means nothing if it matches a
+#   deny below.  In a nutshell the last matched rule will take effect.
+# Allow IRIS Nagios
+<% monServers.each do |server| -%>
+allow <%= server %>
+<% end -%>
+
+# Listen for clients only on the specified interface
+<% if @productname == "OpenStack Nova" -%>
+bindaddress <%= @ipaddress_eth0 %>
+<% else -%>
+bindaddress <%= real_ip %>
+<% end -%>
+
+# Listen for commands only on localhost.
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
+
+# Serve time even if not synchronized to any NTP server.
+#local stratum 10
+
+keyfile /etc/chrony.keys
+
+# Specify the key used as password for chronyc.
+commandkey 1
+
+# Generate command key if missing.
+generatecommandkey
+
+# Disable logging of client accesses.
+noclientlog
+
+# Send a message to syslog if a clock adjustment is larger than 0.5 seconds.
+logchange 0.5
+
+logdir /var/log/chrony
+#log measurements statistics tracking

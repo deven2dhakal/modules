@@ -1,0 +1,32 @@
+---
+<%
+require 'resolv'
+require 'ipaddr'
+
+begin
+	real_ip = Resolv::getaddress(@fqdn)
+rescue
+	real_ip = nil
+end
+
+real_if = nil
+
+# We are going to use a YAML object because I'm not sure how returning a ruby object will work... it may be fine but meh.
+@interfaces.split(',').each do |_if|
+	_var = '@ipaddress_%s' % _if
+	if eval(_var) == real_ip
+		real_if = _if
+		break
+	end
+end
+
+if real_ip
+-%>
+interface: <%= real_if %>
+netmask: <%= eval('@netmask_%s' % real_if) %>
+prefix: <%= IPAddr.new(eval('@netmask_%s' % real_if), 2).to_i.to_s(2).count('1') %>
+ipaddress: <%= real_ip %>
+<%
+end
+-%>
+...

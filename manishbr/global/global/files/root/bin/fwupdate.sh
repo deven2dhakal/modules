@@ -1,0 +1,148 @@
+#!/bin/sh -x
+
+# Programmer: Zahid Bukhari <zbukhari@dotomi.com>
+# Date: Fri Nov  8 23:35:35 UTC 2013 # Actually before this but making it puppetized
+# Purpose: To perform firmware updates on various hardware
+# Updated 20140805 by zbukhari
+#   * Altered to make use of new servers.
+#   * Altered to use single underscore after Linux as Dell changed their
+#     script names *again*.
+#   * Added -x flag to record more output from script.
+#   * BUGFIX - RSYNC_SRC was set before FWVER and it relies on FWVER
+#     FWVER was moved to the top.
+#   * Placing completion messages
+#   * Adding in wall notification with blurb on how to cancel a reboot
+#   * BUGFIX - Found mount point was hard-coded.  Altered to use SRCPATH.
+#   * Created more variables for extensibility and created a different path
+# Updated 20140924 by zbukhari
+#   * Removing nfsvers=3 mount option
+# Updated 20141007 by zbukhari
+#   * Switched to using rsync as a daemon on the VIPs as NFS w/ XFS was not
+#     as secure as I would have liked.
+#   * Created RSYNC_SRC_HOST variable. RSYNC_SRC remains but uses RSYNC_SRC_HOST
+#   * Need to 100% ensure we have no FC cards and will remove as that firmware
+#     hangs and eventually closes but about 3 hours later.
+#   * Corrected path for src
+
+PATH="/bin:/usr/bin:/usr/local/bin:/opt/dell/srvadmin/bin:/sbin:/usr/sbin:/usr/local/sbin:/opt/dell/srvadmin/sbin"
+
+function fwCleanUp {
+	echo Cleaning up firmware update files
+	cd $TMPDIR
+	rm -fr $TMPPATH
+}
+
+MAKE=$(dmidecode -s system-manufacturer)
+MODEL=$(dmidecode -s system-product-name)
+
+RPM="rpm --queryformat='%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n'"
+
+if [ "x$TMPDIR" = "x" ]; then
+	echo No TMPDIR set. Using /tmp.
+	TMPDIR=/tmp
+fi
+
+MNTPATH="/mnt/fwupdate"
+TMPPATH="${TMPDIR}/fwupdate"
+
+test -d $MNTPATH || mkdir -p $MNTPATH
+test -d $TMPPATH || mkdir -p $TMPPATH
+
+case "$HOSTNAME" in
+	dtams*|*.ams5.*|*.sh5.*|*.sh1.*)
+		RSYNC_SRC_HOST=ams-a00-vip.dc.dotomi.net
+		;;
+
+	dtsjc*|*.sj2.*|*.wl.*)
+		RSYNC_SRC_HOST=ops-s00-vip.dc.dotomi.net
+		;;
+
+	dtiad*|*.dc6.*)
+		RSYNC_SRC_HOST=ops-i00-vip.dc.dotomi.net
+		;;
+
+	*)
+		RSYNC_SRC_HOST=ops-o00-vip.dc.dotomi.net
+		;;
+esac
+
+echo "$(date) Starting firmware update ${FWVER}"
+wall "$(date) Starting firmware update ${FWVER}"
+
+case "$MAKE" in
+	"Dell Inc.")
+		# Set generic variables in advance
+		FWVER=v552
+
+		# Do not touch these
+		RSYNC_SRC="${RSYNC_SRC_HOST}::dellfw/${FWVER}"
+		RSYNC_DST="${TMPPATH}/${FWVER}"
+
+		$RPM -q $pkg 2>&1 >/dev/null
+		$RPM -q centos-release-5 2>&1 >/dev/null && PKGLS="procmail glibc.i386 compat-libstdc++-33.i386 libstdc++.i386 zlib.i386 libxml2.i386"
+		$RPM -q centos-release-6 2>&1 >/dev/null && PKGLS="procmail glibc.i686 compat-libstdc++-33.i686 libstdc++.i686 zlib.i686 libxml2.i686"
+
+		# Check to see if we can install
+		for pkg in $(echo $PKGLS)
+		do
+			rpm --queryformat='%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' -q $pkg 2>&1 >/dev/null
+			if [ "x$?" != "x0" ]; then
+				echo $pkg not installed
+				yum -y install $pkg 2>&1 >/dev/null
+				if [ "x$?" != "x0" ]; then
+					echo Unable to install $pkg
+					exit 2
+				fi
+			fi
+		done
+
+		HWNAME=PE$(echo $MODEL | awk '{print $2}')
+
+		# If we didn't exit the script as noted above, perform firmware update.
+		echo Copying down firmware from ${SRCHOST}
+		mkdir -p "${RSYNC_DST}"
+		rsync -av "${RSYNC_SRC}/" "${RSYNC_DST}"
+		cd "${RSYNC_DST}"
+		# I don't want firmware files executable until needed
+		chmod 0700 *sh *BIN
+
+		if [ ! -x ./System_Bundle__Linux_${HWNAME}_${FWVER}_apply_components.sh ]; then
+			echo "$(date) Dell firmware bundle $FWVER does not have a script for $MODEL (i.e. ${HWNAME})"
+			wall "$(date) Dell firmware bundle $FWVER does not have a script for $MODEL (i.e. ${HWNAME})"
+			# Call cleanup
+			fwCleanUp
+			exit 2
+		fi
+
+		# Bouncing hopefully any existing sessions to BMC
+		ipmitool mc reset cold
+		echo Sleeping one minute.
+		sleep 60
+		echo Stopping OMSA
+		srvadmin-services.sh stop
+		echo Performing firmware update using yum -y install $(bootstrap_firmware)
+		yum -y install $(bootstrap_firmware)
+		update_firmware --yes
+		echo Performing firmware update using command System_Bundle__Linux_${HWNAME}_${FWVER}_apply_components.sh
+		./System_Bundle__Linux_${HWNAME}_${FWVER}_apply_components.sh
+		srvadmin-services.sh start
+		echo Setting DRAC to dedicated mode
+		ipmitool delloem lan set dedicated
+		# Call cleanup
+		fwCleanUp
+		;;
+
+	*)
+		echo No other manufacturers configured right now. Notify SYSTEMS ENGINEERING if this is not a VM.
+		exit 1
+		;;
+esac
+
+echo "$(date) Completed firmware update ${FWVER}"
+wall "$(date) Completed firmware update ${FWVER}"
+
+# echo Rebooting in five minutes. You can cancel a shutdown by executing shutdown -c
+# shutdown -r 15 Reboot required. Firmware has been updated.
+if [ "x$1" = "xreboot" ]; then
+	shutdown -r +5 "Rebooting in 5 minutes You can cancel a shutdown by executing shutdown -c"
+fi

@@ -1,0 +1,14 @@
+# Created by puppet => modules/global/templates/etc/resolv.conf.erb <=
+
+search dc.dotomi.net dotomi.com
+options timeout:1
+<% if @hostname =~ /^dt(vqa)/ -%>
+nameserver 127.0.0.1
+<% end -%>
+<%
+@_OPSServers.each do |server|
+-%>
+nameserver <%= server %>
+<%
+end
+-%>

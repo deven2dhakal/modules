@@ -1,0 +1,39 @@
+########################################################################################
+# This is the configuration to feed the tsdb check script.
+# The expected usage is that the tsdb check script will be passed this configuration file and one or more keys.
+# The script will then process the checks specified by that key.
+# If the configuration file does not contain the key, the check script will exit gracefully (no-action).
+# If the configuration file contains multiple lines with the same key, then the values/specification
+# from the last key will prevail over others.
+#
+# The file is to contain ONE specification per line. 
+# The specification is a set of "pipe-seperated" (|) fields as follows:
+# Key | Alert check name | Alert check message | TSDB metric name | TSDB tag key/value pairs | Lookback period (in seconds) | Threshold value | Threshold count | Comparator | Aggregator | Rate comparison | Email recipients (optional)
+#
+# Key (required) = This is the "unique index/key that will be used by the script when searching for the check to execute
+# Alert check name (required) = This is the alert that will be printed as the "subject" in email notifications
+# Alert check message (required) = This is the message that will be printed in the email text
+# TSDB metric name (required) = This is the TSDB metric name
+# TSDB tag key/value pairs (optional) = This is a comma seperated key=value pair of TSDB tags. The format is the same as you would see in Web UI
+# Lookback period = This is the check window period in seconds. The check is made from the current time back to the lookback period (in seconds)
+# Threshold value (required) = This is the threshold value. 
+#           Note that subsequent (other parameters) specify the check is to be done for values to be greater than or less than the threshold value.
+# Threshold count = This is the total number of threshold breaches that need to happen to cause an alert. 
+#           A value of -1 specifies that ALL the values should cause a breach to cause an alert.
+# Comparator (required) = This is the type of comparison to be done between the TSDB metric data and the threshold value. Valid values are - gt, ge, lt, le, eq, ne
+# Aggregator (required) = In line with the TSDB UI, this indicates the aggregation to be used - avg, min, sum, max
+# Rate comparison (optional) = Again in line with the TSDB UI, this indicates whether the "rate of change" for the value should be used or not. 
+#           Use rate if the value is a continuously increasing value and specify it as Y/N or y/n for Yes or No.
+# Email recipients (optional) = Use this field if you want the alerts to be sent to one or more email addresses (space seperated). 
+#           Use this if you want the alerts to go to recipients in addition to those in Solarwinds
+#
+# Key | Alert check name | Alert check message | TSDB metric name | TSDB tag key/value pairs | Lookback period | Threshold value | Comparator | Aggregator | Rate comparison | Email recipients (optional)
+#
+# Usage:
+# /opt/dotomi/python/bin/python /opt/dotomi/monitoring/tsdb_alert_checks.py -k CHECK_ROTA_FLUME_LOW_EVENT_RATE -f /opt/dotomi/monitoring/tsdb_alert_check_config.txt -t $HOSTNAME:4243
+# 
+CHECK_FLUME_LANDING_DIR_SIZE_IN_HADOOP | Alert:/prod/landing in Flume exceeds threshold | Please check that logmover jobs are running and flume data is landing in the correct directories in HDFS | cluster_storage.dir_size_gb | parent_dir=/prod/landing,cluster=F | 1200 | 80 | -1 | gt | sum | N | jthakrar@dotomi.com
+
+CHECK_ROTA_FLUME_LOW_EVENT_RATE | Alert:Rate of events coming into Flume landing agents below threshold | Please check that the SJC/IAD Nodas are up and healthy and sending events into ORD Rotas | flume.source.EventAcceptedCount | dc=O | 1000 | 200 | 1 | lt | sum | Y | jthakrar@dotomi.com
+
+CHECK_ROTA_FLUME_HIGH_EVENT_RATE | Alert:Rate of events coming into Flume landing agents below threshold | Informational alert only. SJC/IAD Nodas are sending unusually high amount of events into ORD Rotas | flume.source.EventAcceptedCount | dc=O | 1000 | 900 | 1 | gt | sum | Y | jthakrar@dotomi.com

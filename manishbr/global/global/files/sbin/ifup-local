@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# Author: Zahid Bukhari <zbukhari@dotomi.com>
+# Date: 20130512 (YYYYMMDD)
+# Purpose: To configure optimal settings for respective NICs
+#
+# Updated: 20130626
+## Added complete base TOE list
+## Cleaned up TOE disable list (i.e. for loop)
+## Completely disabling all TOE functionality
+
+# Updated: 20131024
+## Making exceptions for 10G cards.  They will be omitted from ToE disabling
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+# ethtool optimization function
+function ethtool_optimize {
+	device="$1"
+
+	# We have to wait for the device to come up to determine it's link speed.
+	# This is to prevent an infinite loop yet allow for 10 seconds per device to
+	# determine whether or not it has a link.
+	speed=$(ethtool $device | fgrep Speed: | awk '{print $2}')
+	i=0
+	while [ "x${speed}" = "xUnknown!" -a $i -lt 100 ]
+	do
+		speed=$(ethtool $device | fgrep Speed: | awk '{print $2}')
+		i=$((i+1))
+		sleep 0.1
+	done
+
+	# Complete basic offload list (depending on the NIC there may be others)
+	# rx RX checksumming
+	# tx TX checksumming
+	# sg scatter-gather
+	# tso TCP segmentation offload
+	# ufo UDP fragmentation offload
+	# gso generic segmentation offload
+	# gro generic receive offload
+	# lro large receive offload
+	# rxvlan RX VLAN acceleration
+	# txvlan TX VLAN acceleration
+	# ntuple Rx ntuple filters and actions
+	# rxhash receive hashing offload
+
+	# Disable rx tx tso gso gro
+	case "${speed}" in
+		1000Mb/s|1Gb/s|1000Mbps|1Gbps)
+			for TOE in rx tx sg tso ufo gso gro lro rxvlan txvlan ntuple rxhash
+			do
+				ethtool -K $device $TOE off
+			done
+			;;
+		10000Mb/s|10Gb/s|10000Mbps|10Gbps)
+			echo Do not know what to do with 10Gbps device $device
+			;;
+		*)
+			echo Unknown speed $speed
+			;;
+	esac
+
+	ip link set $device txqueuelen 2000
+
+	# The max varies even with the same driver depending on the device, this is perfect.
+	ethtool -G $device rx $(ethtool -g $device | perl -ne 'if(/Current/) { exit; } else { print; };' | fgrep RX: | awk '{print $2}')
+}
+
+# LVS tweaks that need to be in place upon any restart
+case "$1" in
+	lo*)
+		;;
+	bond*)
+		for slave in $(</sys/class/net/${1}/bonding/slaves)
+		do
+			ethtool_optimize $slave
+		done
+		;;
+	*)
+		ethtool_optimize $1
+		;;
+esac
