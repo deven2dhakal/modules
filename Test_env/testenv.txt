@@ -1,0 +1,3 @@
+#This is file just created to test if the git repository sync is working or not
+
+echo "Hello World"
